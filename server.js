@@ -21,8 +21,29 @@ const PORT = process.env.PORT || 3000;
 
 // ── Middleware ─────────────────────────────────────
 app.use(helmet());
+
+// CORS: allow our own site and any Chrome extension to call the API.
+// The cors library doesn't support wildcard patterns like
+// "chrome-extension://*", so we check the origin with a function instead.
 app.use(cors({
-  origin: [process.env.FRONTEND_URL || 'http://localhost:5173', 'chrome-extension://*'],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (server-to-server, health checks, curl)
+    if (!origin) return callback(null, true);
+    // Allow any Chrome/Edge extension
+    if (origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://')) {
+      return callback(null, true);
+    }
+    // Allow our own frontend
+    if (origin === (process.env.FRONTEND_URL || 'http://localhost:5173')) {
+      return callback(null, true);
+    }
+    // Allow our production domain explicitly
+    if (origin === 'https://recruitglobal.work' || origin === 'https://www.recruitglobal.work') {
+      return callback(null, true);
+    }
+    // Otherwise block
+    return callback(null, false);
+  },
   credentials: true
 }));
 
